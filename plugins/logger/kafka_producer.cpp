@@ -53,6 +53,18 @@ FLAG(
     "none",
     "Compression codec to use for compressing message sets ('none' or 'gzip')");
 
+FLAG(
+    string,
+    sasl_username,
+    "none",
+    "Confluent Cloud cluster API key");
+
+FLAG(
+    string,
+    sasl_password,
+    "none",
+    "Confluent Cloud cluster API secret");
+
 /// How often to poll Kafka broker for publish results.
 const std::chrono::seconds kKafkaPollDuration = std::chrono::seconds(5);
 
@@ -183,20 +195,17 @@ void KafkaProducerPlugin::init(const std::string& name,
     setConf(conf, "debug", "all");
   }
 
-  if (!boost::algorithm::ifind_first(FLAGS_logger_kafka_brokers, "ssl://")
-           .empty()) {
-    if (!setConf(conf, "security.protocol", "ssl") ||
-        !setConf(conf, "ssl.cipher.suites", kTLSCiphers) ||
-        !setConf(conf, "ssl.ca.location", FLAGS_tls_server_certs) ||
-        !setConf(conf, "ssl.key.location", FLAGS_tls_client_key) ||
-        !setConf(conf, "ssl.certificate.location", FLAGS_tls_client_cert)) {
-      return;
-    }
-  }
-
   if (!setConf(conf, "client.id", hostname) ||
       !setConf(conf, "bootstrap.servers", FLAGS_logger_kafka_brokers) ||
-      !setConf(conf, "compression.codec", FLAGS_logger_kafka_compression)) {
+      !setConf(conf, "compression.codec", FLAGS_logger_kafka_compression) ||
+	  !setConf(conf, "api.version.request", "true") ||
+      !setConf(conf, "broker.version.fallback", "0.10.0.0") ||
+      !setConf(conf, "api.version.fallback.ms", "0") ||
+	  !setConf(conf, "sasl.mechanisms", "PLAIN") ||
+	  !setConf(conf, "security.protocol", "SASL_SSL") ||
+	  !setConf(conf, "ssl.ca.location", "/usr/local/etc/openssl/cert.pem") ||
+	  !setConf(conf, "sasl.username", FLAGS_sasl_username) ||
+	  !setConf(conf, "sasl.password", FLAGS_sasl_password)) {
     return;
   }
 
